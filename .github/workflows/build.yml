@@ -32,7 +32,7 @@ jobs:
 
       - name: Build executable with PyInstaller
         run: |
-          pyinstaller -F getData.py
+          pyinstaller -F yichafen_tools.py
 
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
@@ -64,7 +64,7 @@ jobs:
 
       - name: Build release executable with PyInstaller
         run: |
-          pyinstaller -F getData.py
+          pyinstaller -F yichafen_tools.py
 
       - name: Generate release notes from commits
         id: release_notes
