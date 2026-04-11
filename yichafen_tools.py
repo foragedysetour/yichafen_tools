@@ -111,7 +111,7 @@ def get_data_from_url(post_url, base_url, url, cookies, data):
     post_response = requests.post(post_url, headers=headers_post , data=data)
     # print(post_response.text)
     if post_response.json().get('errNo') == 100:
-        print('\033[91m' + f"{data}数据不正确，已跳过" + '\033[0m')
+        print('\033[91m' + f"\n{data}数据无查询结果，已跳过" + '\033[0m')
         return "NotFound"
     response = requests.get(f"https://v3uehkhd.yichafen.com/public/queryresult/from_device/mobile.html", headers=headers_get)
     # print(response.text)
@@ -199,15 +199,36 @@ def save_data_to_excel(data, save_path):
             existing_headers = []
             sheet.delete_rows(1, sheet.max_row)
 
+        header_positions = {}
+        for idx, header in enumerate(existing_headers):
+            if header:
+                header_positions.setdefault(header, []).append(idx)
+
         for header in headers:
-            if header not in existing_headers:
+            if header not in header_positions:
                 existing_headers.append(header)
+                header_positions.setdefault(header, []).append(len(existing_headers) - 1)
                 sheet.cell(row=1, column=len(existing_headers), value=header)
 
         row_data = [None] * len(existing_headers)
         for header, value in zip(headers, values):
-            idx = existing_headers.index(header)
-            row_data[idx] = value
+            positions = header_positions.get(header, [])
+            target_idx = None
+            for idx in positions:
+                if idx >= len(row_data) or row_data[idx] in (None, ''):
+                    target_idx = idx
+                    break
+
+            if target_idx is None:
+                existing_headers.append(header)
+                target_idx = len(existing_headers) - 1
+                header_positions.setdefault(header, []).append(target_idx)
+                sheet.cell(row=1, column=len(existing_headers), value=header)
+                row_data.append(None)
+
+            if target_idx >= len(row_data):
+                row_data.extend([None] * (target_idx + 1 - len(row_data)))
+            row_data[target_idx] = value
 
         sheet.append(row_data)
     else:
@@ -569,6 +590,7 @@ def main():
     # 开始爬取数据
     success_count = 0
     failed_count = 0
+    error_messages = []
     save_lock = Lock()
     
     # 预先生成与线程数相同的 cookies
@@ -615,6 +637,7 @@ def main():
                 else:
                     print(f"[线程 {row_idx}] 连接错误，已重试 {max_retries} 次：{e}")
                     failed_count += 1
+                    error_messages.append(f"[线程 {row_idx}] 连接错误，已重试 {max_retries} 次：{e}")
                     return
         
         if return_data and return_data != "NotFound":
@@ -626,14 +649,17 @@ def main():
                 print(f'\033[91m[线程 {row_idx}] 保存文件失败：{e}\033[0m')
                 print('\033[93m请不要打开表格文件，待数据保存完成后再打开\033[0m')
                 failed_count += 1
+                error_messages.append(f"[线程 {row_idx}] 保存文件失败：{e}")
             except Exception as e:
                 print(f'\033[91m[线程 {row_idx}] 保存文件出错：{e}\033[0m')
                 failed_count += 1
+                error_messages.append(f"[线程 {row_idx}] 保存文件出错：{e}")
         else:
             if return_data == "NotFound":
-                pass  # 数据不正确，已跳过
+                failed_count += 1  # 数据不正确，已跳过
             else:
                 failed_count += 1
+                error_messages.append(f"[线程 {row_idx}] 未获取到有效返回数据。")
     
     # 使用线程池并发处理
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
@@ -647,6 +673,14 @@ def main():
         for future in tqdm(as_completed(futures), total=len(futures), desc='查询进度', colour='green', position=0, leave=False):
             pass
     
+    if success_count == 0 and failed_count == len(excel_rows) and error_messages:
+        app = QApplication.instance() or QApplication(sys.argv)
+        summary = '\n'.join(error_messages[:10])
+        if len(error_messages) > 10:
+            summary += f"\n...还有 {len(error_messages) - 10} 条错误信息。"
+        QMessageBox.critical(None, '错误', f'全部任务均失败，程序已退出。\n\n{summary}')
+        return
+
     print(f'\033[1;32;40m爬取完成：成功 {success_count} 条，失败 {failed_count} 条\033[0m')
     
 if __name__ == '__main__':
