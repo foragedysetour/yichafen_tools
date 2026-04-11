@@ -1,0 +1,96 @@
+name: build and release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Package repository
+        run: |
+          $artifactName = "yichafen_tools-${{ github.sha }}"
+          $zipPath = "$PWD\$artifactName.zip"
+          Remove-Item -Force $zipPath -ErrorAction Ignore
+          $files = Get-ChildItem -Recurse -File | Where-Object {
+            $_.FullName -notmatch '\\.git|\\.venv|__pycache__'
+          }
+          Compress-Archive -Path $files.FullName -DestinationPath $zipPath -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yichafen_tools-${{ github.sha }}
+          path: yichafen_tools-${{ github.sha }}.zip
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.10'
+
+      - name: Package release
+        run: |
+          $artifactName = "yichafen_tools-${{ github.sha }}"
+          $zipPath = "$PWD\$artifactName.zip"
+          Remove-Item -Force $zipPath -ErrorAction Ignore
+          $files = Get-ChildItem -Recurse -File | Where-Object {
+            $_.FullName -notmatch '\\.git|\\.venv|__pycache__'
+          }
+          Compress-Archive -Path $files.FullName -DestinationPath $zipPath -Force
+
+      - name: Generate release notes from commits
+        id: release_notes
+        shell: bash
+        run: |
+          git fetch --tags --depth=0
+          TAG=${GITHUB_REF#refs/tags/}
+          PREV_TAG=$(git describe --tags --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="$PREV_TAG..HEAD"
+          else
+            RANGE="$GITHUB_SHA"
+          fi
+          COMMITS=$(git log --pretty=format:'- %s' --no-merges $RANGE)
+          if [ -z "$COMMITS" ]; then
+            COMMITS="- Release $TAG"
+          fi
+          echo -e "## $TAG\n\n$COMMITS" > release-notes.md
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo -e "## $TAG\n\n$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: ${{ steps.release_notes.outputs.notes }}
+          files: yichafen_tools-${{ github.sha }}.zip,release-notes.md
