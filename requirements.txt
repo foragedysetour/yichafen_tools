@@ -3,3 +3,4 @@ PySide6
 openpyxl
 tqdm
 bs4
+lxml
