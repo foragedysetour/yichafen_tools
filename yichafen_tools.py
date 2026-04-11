@@ -357,7 +357,6 @@ def select_save_path(default_name):
 def settings_dialog(config):
     """显示设置窗口，允许用户配置 base_url、usersDB_path 和 num_threads"""
     app = QApplication.instance() or QApplication(sys.argv)
-    
     dialog = QDialog(None)
     dialog.setWindowTitle('程序设置')
     dialog.setGeometry(100, 100, 500, 350)
@@ -486,7 +485,8 @@ def settings_dialog(config):
 
 
 def main():
-
+    
+    app = QApplication.instance() or QApplication(sys.argv)
     #读取配置文件
     try:
         with open('config.json', 'r', encoding='utf-8') as f:  
@@ -673,15 +673,19 @@ def main():
         for future in tqdm(as_completed(futures), total=len(futures), desc='查询进度', colour='green', position=0, leave=False):
             pass
     
-    if success_count == 0 and failed_count == len(excel_rows) and error_messages:
+    if success_count == 0 and failed_count == len(excel_rows):
         app = QApplication.instance() or QApplication(sys.argv)
-        summary = '\n'.join(error_messages[:10])
-        if len(error_messages) > 10:
-            summary += f"\n...还有 {len(error_messages) - 10} 条错误信息。"
+        if error_messages:
+            summary = '\n'.join(error_messages[:10])
+            if len(error_messages) > 10:
+                summary += f"\n...还有 {len(error_messages) - 10} 条错误信息。"
+        else:
+            summary = '所有请求均未返回有效数据，程序已退出。'
         QMessageBox.critical(None, '错误', f'全部任务均失败，程序已退出。\n\n{summary}')
         return
 
     print(f'\033[1;32;40m爬取完成：成功 {success_count} 条，失败 {failed_count} 条\033[0m')
+    QMessageBox.information(None, '提示', f'爬取完成：成功 {success_count} 条，失败 {failed_count} 条')
     
 if __name__ == '__main__':
     main()
