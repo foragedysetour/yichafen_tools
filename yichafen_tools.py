@@ -296,7 +296,7 @@ def select_query_url(all_url_list, config):
     # 添加按钮
     button_layout = QHBoxLayout()
     ok_button = QPushButton('确定')
-    settings_button = QPushButton('设置')
+    settings_button = QPushButton('⚙️设置')
     cancel_button = QPushButton('取消')
     button_layout.addWidget(ok_button)
     button_layout.addWidget(settings_button)
