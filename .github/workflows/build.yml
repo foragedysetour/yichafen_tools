@@ -1,11 +1,9 @@
-name: build and release
+name: build
 
 on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
 
 jobs:
   build:
@@ -39,58 +37,3 @@ jobs:
         with:
           name: yichafen_tools-exe
           path: dist/*.exe
-
-  release:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: windows-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12.10'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if (Test-Path requirements.txt) {
-            pip install -r requirements.txt
-          }
-          pip install pyinstaller
-
-      - name: Build release executable with PyInstaller
-        run: |
-          pyinstaller -F yichafen_tools.py
-
-      - name: Generate release notes from commits
-        id: release_notes
-        shell: bash
-        run: |
-          git fetch --tags --depth=0
-          TAG=${GITHUB_REF#refs/tags/}
-          PREV_TAG=$(git describe --tags --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)
-          if [ -n "$PREV_TAG" ]; then
-            RANGE="$PREV_TAG..HEAD"
-          else
-            RANGE="$GITHUB_SHA"
-          fi
-          COMMITS=$(git log --pretty=format:'- %s' --no-merges $RANGE)
-          if [ -z "$COMMITS" ]; then
-            COMMITS="- Release $TAG"
-          fi
-          echo -e "## $TAG\n\n$COMMITS" > release-notes.md
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo -e "## $TAG\n\n$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: ${{ steps.release_notes.outputs.notes }}
-          files: dist/*.exe,release-notes.md
