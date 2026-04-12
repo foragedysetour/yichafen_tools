@@ -1,0 +1,52 @@
+on:
+  push:
+    tags:
+      - "v*" # 识别推送 v 开头的 tag 时触发
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path requirements.txt) {
+            pip install -r requirements.txt
+          }
+          pip install pyinstaller
+
+      - name: Build executable with PyInstaller
+        run: |
+          pyinstaller -F yichafen_tools.py
+      # 生成需要上传的 release 文件
+      - name: Rename and Compress dist
+        run: |
+          ren dist\yichafen_tools.exe yichafen_tools-v${{ steps.get_version.outputs.VERSION }}.exe
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GITHUBTOKEN }}
+          name: "Version ${{ steps.get_version.outputs.VERSION }} 🚀"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          # release 中的信息，一般为 changelog
+          body_path: changelog/v${{ steps.get_version.outputs.VERSION }}.md
+          # 你上传的 release 文件路径
+          files: |
+            dist\yichafen_tools-v${{ steps.get_version.outputs.VERSION }}.exe
