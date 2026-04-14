@@ -48,4 +48,4 @@ jobs:
           generate_release_notes: true
           # 你上传的 release 文件路径
           files: |
-            dist\yichafen_tools-v${{ steps.get_version.outputs.VERSION }}.exe
+            dist\
