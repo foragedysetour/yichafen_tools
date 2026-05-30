@@ -3,7 +3,7 @@
 一个用于抓取易查分网页数据并保存到本地 Excel 的工具。
 
 > [!tips]
-> 本软件仅供学习交流使用
+> - 本软件仅供学习交流使用
 
 ### ⚙️如何使用
 #### 1. 配置文件说明 (config.json)
@@ -15,8 +15,8 @@
 | `base_url` | ✅ | 易查分网站的基本URL（不含https://） |
 | `usersDB_path(excel)` | ✅ | 用户数据库Excel文件路径 |
 | `num_threads` | ❌ | 并发线程数，默认为4 |
-**config.json 示例：**
 
+**config.json 示例：**
 ```json
 {
     "base_url": "xxxxx.yichafen.com",
