@@ -354,31 +354,65 @@ def select_save_path(default_name):
         return None
 
 
+def validate_base_url(url):
+    """验证Base URL格式"""
+    if not url:
+        return False, "Base URL不能为空"
+    if url.startswith('https://') or url.startswith('http://'):
+        return False, "请输入不含https://的网址，例如：xxx.yichafen.com"
+    if 'yichafen.com' not in url:
+        return False, "请确保输入的是易查分网址"
+    return True, "✓ 格式正确"
+
+
+def validate_db_path(path):
+    """验证数据库文件路径"""
+    if not path:
+        return False, "数据库路径不能为空"
+    if not os.path.isfile(path):
+        return False, "文件不存在，请重新选择"
+    if not path.lower().endswith('.xlsx'):
+        return False, "仅支持 .xlsx 格式文件"
+    return True, "✓ 文件有效"
+
+
 def settings_dialog(config):
     """显示设置窗口，允许用户配置 base_url、usersDB_path 和 num_threads"""
     app = QApplication.instance() or QApplication(sys.argv)
     dialog = QDialog(None)
-    dialog.setWindowTitle('程序设置')
-    dialog.setGeometry(100, 100, 500, 350)
+    dialog.setWindowTitle('⚙️ 程序设置')
+    dialog.setGeometry(100, 100, 600, 550)
     dialog.setStyleSheet("""
         QDialog {
-            background-color: #f0f0f0;
+            background-color: #f5f5f5;
         }
         QLabel {
             color: #333;
             font-size: 11pt;
         }
+        .title-label {
+            color: #0078d4;
+            font-size: 12pt;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        .help-label {
+            color: #666;
+            font-size: 10pt;
+            margin-bottom: 5px;
+        }
         QLineEdit {
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 6px;
+            padding: 8px;
             background-color: white;
             font-size: 11pt;
         }
         QSpinBox {
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 6px;
+            padding: 8px;
             background-color: white;
             font-size: 11pt;
         }
@@ -387,8 +421,9 @@ def settings_dialog(config):
             color: white;
             border: none;
             border-radius: 4px;
-            padding: 6px 12px;
+            padding: 8px 16px;
             font-weight: bold;
+            min-width: 60px;
         }
         QPushButton:hover {
             background-color: #1084d9;
@@ -396,45 +431,102 @@ def settings_dialog(config):
         QPushButton:pressed {
             background-color: #106ebe;
         }
+        .validate-label {
+            font-size: 10pt;
+            margin-top: 3px;
+        }
     """)
     
     layout = QVBoxLayout()
+    layout.setSpacing(10)
+    layout.setContentsMargins(20, 20, 20, 20)
+    
+    # 标题
+    title = QLabel('📋 配置您的爬取设置')
+    title.setFont(QFont("", 13, QFont.Bold))
+    layout.addWidget(title)
     
     # Base URL 设置
-    base_url_label = QLabel('Base URL:')
+    base_url_title = QLabel('1️⃣ Base URL (必填)')
+    base_url_title.setProperty("class", "title-label")
+    layout.addWidget(base_url_title)
+    
+    base_url_help = QLabel('ℹ️ 从易查分主页网址获取。例如在浏览器访问 https://xxx.yichafen.com 时，\n输入：xxx.yichafen.com')
+    base_url_help.setProperty("class", "help-label")
+    layout.addWidget(base_url_help)
+    
     base_url_input = QLineEdit()
-    base_url_input.setPlaceholderText('从yichafen主页网址获取,例如：xxx.yichafen.com')
+    base_url_input.setPlaceholderText('例如：abc123.yichafen.com')
     base_url_input.setText(config.get('base_url', ''))
-    layout.addWidget(base_url_label)
     layout.addWidget(base_url_input)
     
+    base_url_validate_label = QLabel('')
+    base_url_validate_label.setProperty("class", "validate-label")
+    layout.addWidget(base_url_validate_label)
+    
     # 用户数据库路径设置
-    db_path_label = QLabel('用户数据库路径:')
+    db_path_title = QLabel('2️⃣ 用户数据库 Excel 文件 (必填)')
+    db_path_title.setProperty("class", "title-label")
+    layout.addWidget(db_path_title)
+    
+    db_path_help = QLabel('ℹ️ 选择包含学生信息的 Excel 文件（.xlsx 格式）。\n表头需要包含与易查分查询页面相匹配的字段（如：姓名、学号、班级等）。')
+    db_path_help.setProperty("class", "help-label")
+    layout.addWidget(db_path_help)
+    
     db_path_input = QLineEdit()
-    db_path_input.setPlaceholderText('请选择本地 Excel 文件路径')
+    db_path_input.setPlaceholderText('点击"选择文件"按钮选择您的 Excel 文件')
     db_path_input.setText(config.get('usersDB_path(excel)', ''))
     db_path_layout = QHBoxLayout()
     db_path_layout.addWidget(db_path_input)
-    db_path_browse_button = QPushButton('选择文件')
+    db_path_browse_button = QPushButton('📁 选择文件')
     db_path_layout.addWidget(db_path_browse_button)
-    layout.addWidget(db_path_label)
     layout.addLayout(db_path_layout)
     
+    db_path_validate_label = QLabel('')
+    db_path_validate_label.setProperty("class", "validate-label")
+    layout.addWidget(db_path_validate_label)
+    
     # 线程数设置
-    threads_label = QLabel('爬取线程数:')
+    threads_title = QLabel('3️⃣ 爬取线程数 (可选)')
+    threads_title.setProperty("class", "title-label")
+    layout.addWidget(threads_title)
+    
+    threads_help = QLabel('ℹ️ 线程数越多速度越快，但可能会被服务器限制。\n建议值：4-8（根据网络状况调整）')
+    threads_help.setProperty("class", "help-label")
+    layout.addWidget(threads_help)
+    
+    threads_layout = QHBoxLayout()
     threads_spinbox = QSpinBox()
     threads_spinbox.setMinimum(1)
     threads_spinbox.setMaximum(16)
     threads_spinbox.setValue(config.get('num_threads', 4))
-    layout.addWidget(threads_label)
-    layout.addWidget(threads_spinbox)
+    threads_spinbox.setMaximumWidth(80)
+    threads_layout.addWidget(QLabel('线程数：'))
+    threads_layout.addWidget(threads_spinbox)
+    threads_layout.addStretch()
+    layout.addLayout(threads_layout)
     
-    # 添加按钮
+    # 验证反馈
+    def update_validations():
+        is_url_valid, url_msg = validate_base_url(base_url_input.text().strip())
+        base_url_validate_label.setText(url_msg)
+        base_url_validate_label.setStyleSheet("color: #28a745;" if is_url_valid else "color: #dc3545;")
+        
+        is_path_valid, path_msg = validate_db_path(db_path_input.text().strip())
+        db_path_validate_label.setText(path_msg)
+        db_path_validate_label.setStyleSheet("color: #28a745;" if is_path_valid else "color: #dc3545;")
+    
+    base_url_input.textChanged.connect(update_validations)
+    db_path_input.textChanged.connect(update_validations)
+    
+    # 按钮
     button_layout = QHBoxLayout()
-    ok_button = QPushButton('保存')
-    cancel_button = QPushButton('取消')
+    button_layout.addStretch()
+    ok_button = QPushButton('💾 保存设置')
+    cancel_button = QPushButton('❌ 取消')
     button_layout.addWidget(ok_button)
     button_layout.addWidget(cancel_button)
+    layout.addStretch()
     layout.addLayout(button_layout)
     
     dialog.setLayout(layout)
@@ -454,8 +546,16 @@ def settings_dialog(config):
         db_path = db_path_input.text().strip()
         num_threads = threads_spinbox.value()
         
-        if not base_url or not db_path:
-            QMessageBox.warning(dialog, '提示', '请填写所有必要的配置信息')
+        is_url_valid, url_msg = validate_base_url(base_url)
+        is_path_valid, path_msg = validate_db_path(db_path)
+        
+        if not is_url_valid or not is_path_valid:
+            error_msg = ""
+            if not is_url_valid:
+                error_msg += f"❌ Base URL: {url_msg}\n"
+            if not is_path_valid:
+                error_msg += f"❌ Excel 文件: {path_msg}"
+            QMessageBox.warning(dialog, '⚠️ 配置错误', error_msg)
             return
         
         # 更新 config
@@ -468,15 +568,19 @@ def settings_dialog(config):
             with open('config.json', 'w', encoding='utf-8') as f:
                 json.dump(config, f, ensure_ascii=False, indent=4)
             result['saved'] = True
+            QMessageBox.information(dialog, '✅ 成功', '配置已保存！')
             dialog.accept()
         except Exception as e:
-            QMessageBox.critical(dialog, '错误', f'保存配置失败：{e}')
+            QMessageBox.critical(dialog, '❌ 错误', f'保存配置失败：{e}')
     
     def on_cancel():
         dialog.reject()
     
     ok_button.clicked.connect(on_ok)
     cancel_button.clicked.connect(on_cancel)
+    
+    # 初始验证
+    update_validations()
     
     if dialog.exec() == QDialog.Accepted and result['saved']:
         return True
