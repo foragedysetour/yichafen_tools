@@ -287,7 +287,7 @@ def select_query_url(all_url_list, config):
     # 添加列表框
     list_widget = QListWidget()
     for i, url in enumerate(all_url_list):
-        item_text = f"{i+1}. {url.name} (日期: {url.time})"
+        item_text = f"{url.name} (日期: {url.time})"
         list_widget.addItem(item_text)
     
     list_widget.setCurrentRow(0)
@@ -295,9 +295,9 @@ def select_query_url(all_url_list, config):
     
     # 添加按钮
     button_layout = QHBoxLayout()
-    ok_button = QPushButton('确定')
+    ok_button = QPushButton('🔍开始')
     settings_button = QPushButton('⚙️设置')
-    cancel_button = QPushButton('取消')
+    cancel_button = QPushButton('❎取消')
     button_layout.addWidget(ok_button)
     button_layout.addWidget(settings_button)
     button_layout.addWidget(cancel_button)
