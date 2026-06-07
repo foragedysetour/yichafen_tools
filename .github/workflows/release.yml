@@ -37,6 +37,7 @@ jobs:
       - name: Rename and Compress dist
         run: |
           ren dist\yichafen_tools.exe yichafen_tools-v${{ steps.get_version.outputs.VERSION }}.exe
+          move dist\yichafen_tools-v${{ steps.get_version.outputs.VERSION }}.exe .
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
