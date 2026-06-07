@@ -29,7 +29,9 @@
 
 **第二步：运行程序**
 ```bash
-python yichafen_tools.py
+# 已提供打包好的可执行文件，无需安装 Python 或依赖
+# Windows: 在项目根目录双击可执行文件，或在终端运行：
+yichafen_tools.exe
 ```
 
 **第三步：设置配置信息**
@@ -115,10 +117,11 @@ python yichafen_tools.py
 
 #### 4️⃣ 运行程序
 
-配置完成后，直接运行程序：
+配置完成后，直接运行程序（已打包为可执行文件，无需手动安装依赖）：
 
 ```bash
-python yichafen_tools.py
+# Windows: 双击或在终端运行可执行文件
+yichafen_tools.exe
 ```
 
 程序会按以下流程执行：
@@ -248,7 +251,7 @@ python yichafen_tools.py
 **A:** **是的！** 有两种方法：
 
 **方法1：通过GUI（推荐）**
-1. 运行程序 `python yichafen_tools.py`
+1. 运行程序：双击 `yichafen_tools.exe`，或在终端中运行 `yichafen_tools.exe`（已打包，无需安装 Python 或依赖）
 2. 在查询选择窗口点击 **⚙️ 设置** 按钮
 3. 修改配置后点击 **💾 保存设置**
 
@@ -288,27 +291,6 @@ pip install -r requirements.txt
 ---
 
 ## 🛠️ 故障排除
-
-### 问题：程序无法启动
-
-**解决方法：**
-```bash
-# 1. 检查Python版本（需要3.8+）
-python --version
-
-# 2. 检查依赖是否安装
-pip list | grep -E "requests|beautifulsoup4|openpyxl|PySide6|tqdm"
-
-# 3. 重新安装依赖
-pip install -r requirements.txt -U
-```
-
-### 问题：图形界面无法显示
-
-**解决方法：**
-- Windows：通常不会出现此问题
-- Linux：确保已安装图形化环境，或尝试 `pip install --upgrade PySide6`
-- macOS：同Linux
 
 ### 问题：数据匹配失败
 
